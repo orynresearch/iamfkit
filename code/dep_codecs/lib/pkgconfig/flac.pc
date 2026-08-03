@@ -1,0 +1,12 @@
+prefix=/Users/minodab492/libiamf-macos-test/code/dep_codecs
+exec_prefix=/Users/minodab492/libiamf-macos-test/code/dep_codecs
+libdir=/Users/minodab492/libiamf-macos-test/code/dep_codecs/lib
+includedir=/Users/minodab492/libiamf-macos-test/code/dep_codecs/include
+
+Name: FLAC
+Description: Free Lossless Audio Codec Library
+Version: 1.4.2
+Requires.private: 
+Libs: -L${libdir} -lFLAC
+Libs.private: -lm
+Cflags: -I${includedir}
