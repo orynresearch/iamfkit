@@ -1,0 +1,306 @@
+// Copyright (c) 2023, Alliance for Open Media. All rights reserved
+//
+// This source code is subject to the terms of the BSD 3-Clause Clear License
+// and the Alliance for Open Media Patent License 1.0. If the BSD 3-Clause Clear
+// License was not distributed with this source code in the LICENSE file, you
+// can obtain it at www.aomedia.org/license/software-license/bsd-3-c-c. If the
+// Alliance for Open Media Patent License 1.0 was not distributed with this
+// source code in the PATENTS file, you can obtain it at
+// www.aomedia.org/license/patent.
+
+edition = "2023";
+
+package libiamf_proto;
+
+import "element_gain_offset_config.proto";
+import "obu_header.proto";
+import "param_definitions.proto";
+
+option features.enum_type = CLOSED;
+option features.utf8_validation = NONE;
+
+enum HeadPhonesRenderingMode {
+  option allow_alias = true;
+
+  HEADPHONES_RENDERING_MODE_INVALID = 0;
+  HEADPHONES_RENDERING_MODE_STEREO = 1;
+  // Spelling out `HEADPHONES_RENDERING_MODE_BINAURAL` or
+  // `HEADPHONES_RENDERING_MODE_RESERVED_2` is deprecated. Prefer the enums that
+  // explicitly state whether it is world-locked or head-locked. Historical uses
+  // will be automatically translated accordingly:
+  //
+  // - `HEADPHONES_RENDERING_MODE_BINAURAL` to
+  //   `HEADPHONES_RENDERING_MODE_BINAURAL_WORLD_LOCKED`.
+  // - `HEADPHONES_RENDERING_MODE_RESERVED_2` to
+  //   `HEADPHONES_RENDERING_MODE_BINAURAL_HEAD_LOCKED`.
+  HEADPHONES_RENDERING_MODE_BINAURAL = 2 [deprecated = true];
+  HEADPHONES_RENDERING_MODE_BINAURAL_WORLD_LOCKED = 2;
+  HEADPHONES_RENDERING_MODE_RESERVED_2 = 3 [deprecated = true];
+  HEADPHONES_RENDERING_MODE_BINAURAL_HEAD_LOCKED = 3;
+  HEADPHONES_RENDERING_MODE_RESERVED_3 = 4;
+}
+
+enum BinauralFilterProfile {
+  BINAURAL_FILTER_PROFILE_INVALID = 0;
+  BINAURAL_FILTER_PROFILE_AMBIENT = 1;
+  BINAURAL_FILTER_PROFILE_DIRECT = 2;
+  BINAURAL_FILTER_PROFILE_REVERBERANT = 3;
+  BINAURAL_FILTER_PROFILE_RESERVED3 = 4;
+}
+
+message RenderingConfigParamDefinition {
+  ParamDefinitionType param_definition_type = 1;
+  oneof param_definition {
+    PolarParamDefinition polar_param_definition = 2;
+    Cart8ParamDefinition cart8_param_definition = 4;
+    Cart16ParamDefinition cart16_param_definition = 5;
+    DualPolarParamDefinition dual_polar_param_definition = 6;
+    DualCart8ParamDefinition dual_cart8_param_definition = 7;
+    DualCart16ParamDefinition dual_cart16_param_definition = 8;
+    bytes param_definition_bytes = 3;
+  }
+}
+
+message RenderingConfig {
+  HeadPhonesRenderingMode headphones_rendering_mode = 1;
+  BinauralFilterProfile binaural_filter_profile = 7
+      [default = BINAURAL_FILTER_PROFILE_AMBIENT];
+  uint32 reserved = 2;
+  uint32 rendering_config_extension_size = 3 [deprecated = true];
+  repeated RenderingConfigParamDefinition rendering_config_param_definitions =
+      5;
+  ElementGainOffsetConfig element_gain_offset_config = 6;
+  bytes rendering_config_extension_bytes = 4;
+
+  // Next ID: 8
+}
+
+message SubMixAudioElement {
+  reserved 2, 3, 4;
+  reserved element_mix_config, mix_presentation_element_annotations_array;
+
+  uint32 audio_element_id = 1;
+
+  // Annotations, for this audio element. The length should be `count_label`.
+  repeated string localized_element_annotations = 6;
+  RenderingConfig rendering_config = 5;
+
+  MixGainParamDefinition element_mix_gain = 7;
+}
+
+// See section 3.7.5 of the IAMF spec.
+//
+// IAMF pulls from various conventions.
+//
+// Sound systems A through J refer to ITU2051-3. Sound systems 10 through 14
+// refer to IAMF's own systems.
+//
+// Typically named in "A+B+C" convention, where A is the number of height
+// speakers, B is the number of surround speakers, and C is the number of
+// bottom speakers.
+enum SoundSystem {
+  SOUND_SYSTEM_INVALID = 0;
+  SOUND_SYSTEM_A_0_2_0 = 1;
+  SOUND_SYSTEM_B_0_5_0 = 2;
+  SOUND_SYSTEM_C_2_5_0 = 3;
+  SOUND_SYSTEM_D_4_5_0 = 4;
+  SOUND_SYSTEM_E_4_5_1 = 5;
+  SOUND_SYSTEM_F_3_7_0 = 6;
+  SOUND_SYSTEM_G_4_9_0 = 7;
+  SOUND_SYSTEM_H_9_10_3 = 8;
+  SOUND_SYSTEM_I_0_7_0 = 9;
+  SOUND_SYSTEM_J_4_7_0 = 10;
+  SOUND_SYSTEM_10_2_7_0 = 11;  // IAMF's 7.1.2.
+  SOUND_SYSTEM_11_2_3_0 = 12;  // IAMF's 3.1.2.
+  SOUND_SYSTEM_12_0_1_0 = 13;  // Mono.
+  SOUND_SYSTEM_13_6_9_0 = 14;  // IAMF's 9.1.6.
+  SOUND_SYSTEM_14_5_7_4 = 15;  // IAMF's 7.1.5.4.
+}
+
+message LoudspeakersSsConventionLayout {
+  SoundSystem sound_system = 1;
+  uint32 reserved = 2;
+}
+
+message LoudspeakersReservedOrBinauralLayout {
+  uint32 reserved = 1;
+}
+
+enum LayoutType {
+  LAYOUT_TYPE_INVALID = 0;
+  LAYOUT_TYPE_RESERVED_0 = 1;
+  LAYOUT_TYPE_RESERVED_1 = 2;
+  LAYOUT_TYPE_LOUDSPEAKERS_SS_CONVENTION = 3;
+  LAYOUT_TYPE_BINAURAL = 4;
+}
+
+message Layout {
+  reserved 2;
+
+  LayoutType layout_type = 1;
+
+  oneof specific_layout {
+    LoudspeakersSsConventionLayout ss_layout = 3;
+    LoudspeakersReservedOrBinauralLayout reserved_or_binaural_layout = 4;
+  }
+}
+
+enum AnchorType {
+  ANCHOR_TYPE_INVALID = 0;
+  ANCHOR_TYPE_UNKNOWN = 1;
+  ANCHOR_TYPE_DIALOGUE = 2;
+  ANCHOR_TYPE_ALBUM = 3;
+}
+
+// Values are represented to align with the IAMF spec.
+//
+// See
+// https://aomediacodec.github.io/iamf/v1.1.0.html#obu-mixpresentation-loudness
+// for further details.
+//
+// See detailed examples on Q7.8 format below in `LoudnessInfo`.
+message AnchorElement {
+  AnchorType anchor_element = 1;
+  int32 anchored_loudness = 2;  // Q7.8.
+}
+
+message AnchoredLoudness {
+  // `num_anchored_loudness` is ignored. The value in the bitstream is inferred
+  // based on the number of `anchor_elements`.
+  uint32 num_anchored_loudness = 1 [deprecated = true];
+
+  repeated AnchorElement anchor_elements = 2;
+}
+
+enum LoudnessInfoTypeBitMask {
+  option allow_alias = true;
+
+  LOUDNESS_INFO_TYPE_INVALID = 0;
+  LOUDNESS_INFO_TYPE_TRUE_PEAK = 1;
+  LOUDNESS_INFO_TYPE_ANCHORED_LOUDNESS = 2;
+  LOUDNESS_INFO_TYPE_RESERVED_4 = 4 [deprecated = true];
+  LOUDNESS_INFO_TYPE_LIVE = 4;
+  LOUDNESS_INFO_TYPE_RESERVED_8 = 8;
+  LOUDNESS_INFO_TYPE_RESERVED_16 = 16;
+  LOUDNESS_INFO_TYPE_RESERVED_32 = 32;
+  LOUDNESS_INFO_TYPE_RESERVED_64 = 64;
+  LOUDNESS_INFO_TYPE_RESERVED_128 = 128;
+}
+
+// Values are represented to align with the IAMF spec.
+//
+// See
+// https://aomediacodec.github.io/iamf/v1.1.0.html#obu-mixpresentation-loudness
+// for further details.
+//
+// To convert from dB to Q7.8, multiply by 256. Example:
+//  - For -3 dB, set the proto value to 256 * -3 = -768.
+//  - For +6 dB, set the proto value to 256 * 6 = 1536.
+message LoudnessInfo {
+  uint32 deprecated_info_type = 1 [deprecated = true];
+
+  repeated LoudnessInfoTypeBitMask info_type_bit_masks = 8;
+  int32 integrated_loudness = 2;  // Q7.8.
+  int32 digital_peak = 3;         // Q7.8.
+  int32 true_peak = 4;            // Q7.8.
+  AnchoredLoudness anchored_loudness = 5;
+  uint32 info_type_size = 6 [deprecated = true];
+  bytes info_type_bytes = 7;
+
+  // Next ID: 9
+}
+
+message MixPresentationLayout {
+  Layout loudness_layout = 1;
+  LoudnessInfo loudness = 2;
+}
+
+message MixPresentationSubMix {
+  reserved 3;
+  reserved output_mix_config;
+
+  // `num_audio_elements` is ignored. The value in the bitstream is inferred
+  // based on the number of `audio_elements`.
+  uint32 num_audio_elements = 1 [deprecated = true];
+
+  repeated SubMixAudioElement audio_elements = 2;
+
+  MixGainParamDefinition output_mix_gain = 6;
+
+  // `num_layouts` is ignored. The value in the bitstream is inferred
+  // based on the number of `layouts`.
+  uint32 num_layouts = 4 [deprecated = true];
+
+  repeated MixPresentationLayout layouts = 5;
+
+  // Next ID: 7
+}
+
+message MixPresentationTag {
+  string tag_name = 1;
+  string tag_value = 2;
+}
+
+message MixPresentationTags {
+  // `num_tags` is ignored. The value in the bitstream is inferred based on the
+  // number of tags.
+  uint32 num_tags = 1 [deprecated = true];
+
+  repeated MixPresentationTag tags = 2;
+}
+
+enum PreferredLoudspeakerRenderer {
+  PREFERRED_LOUDSPEAKER_RENDERER_INVALID = 0;
+  PREFERRED_LOUDSPEAKER_RENDERER_NONE = 1;
+  PREFERRED_LOUDSPEAKER_RENDERER_RESERVED_255 = 256;
+}
+
+enum PreferredBinauralRenderer {
+  PREFERRED_BINAURAL_RENDERER_INVALID = 0;
+  PREFERRED_BINAURAL_RENDERER_NONE = 1;
+  PREFERRED_BINAURAL_RENDERER_RESERVED_255 = 256;
+}
+
+message MixPresentationOptionalFields {
+  // `optional_fields_size` is ignored. The value in the bitstream is inferred
+  // based on the size of `optional_fields_remaining_bytes`.
+  PreferredLoudspeakerRenderer preferred_loudspeaker_renderer = 1;
+  PreferredBinauralRenderer preferred_binaural_renderer = 2;
+  bytes optional_fields_remaining_bytes = 3;
+}
+
+message MixPresentationObuMetadata {
+  reserved 2, 6, 7;
+  reserved language_labels, mix_presentation_annotations_array;
+
+  uint32 mix_presentation_id = 1;
+  uint32 count_label = 5 [deprecated = true];
+
+  // Language codes of the annotations themselves, infer the spec `count_label`
+  // from the length of this field.
+  repeated string annotations_language = 9;
+
+  // Annotations, for this mix. The length should be `count_label`.
+  repeated string localized_presentation_annotations = 10;
+
+  // `num_sub_mixes` is ignored. The value in the bitstream is inferred
+  // based on the number of `sub_mixes`.
+  uint32 num_sub_mixes = 3 [deprecated = true];
+
+  repeated MixPresentationSubMix sub_mixes = 4;
+
+  // When false [default]: The encoder will ignore the below
+  //                      `mix_presentation_tags`. Beware that other features
+  //                      may still result in additional non-user specified
+  //                      tags. To stricly encode a file without any tags, set
+  //                      both `include_mix_presentation_tags` and
+  //                      `EncoderControlMetadata.add_build_information_tag`
+  //                      fields to false.
+  // When true: The encoder will use the `mix_presentation_tags` field.
+  bool include_mix_presentation_tags = 11;
+  MixPresentationTags mix_presentation_tags = 12;
+  MixPresentationOptionalFields optional_fields = 13;
+  ObuHeaderMetadata obu_header = 8;
+
+  // Next ID: 14
+}
