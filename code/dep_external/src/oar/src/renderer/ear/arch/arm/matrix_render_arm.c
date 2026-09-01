@@ -10,7 +10,6 @@
  * www.aomedia.org/license/patent.
  */
 
-
 #include "matrix_render.h"
 
 #if defined(def_oar_arch_arm)

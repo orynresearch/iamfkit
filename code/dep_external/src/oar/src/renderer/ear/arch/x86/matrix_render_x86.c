@@ -30,7 +30,7 @@ void multiply_channels_by_matrix_c(float *mat, int in_dim, int in_next,
         if (in_idx == 0) {
           out[out_idx][i] = 0;
         }
-        out[out_idx][i] += c * in[in_mapped_idx][i];
+        out[out_idx][i] += c * in[in_idx][i];
       }
     }
   }
