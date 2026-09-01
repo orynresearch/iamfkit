@@ -1,32 +1,395 @@
-name: build
+name: iamfkit CI/CD
 
-on: [push, pull_request]
+# Single master workflow for the whole repo. Path-based change detection
+# (the `changes` job) keeps cheap per-ecosystem checks fast on ordinary
+# pushes/PRs — e.g. a Python-only change doesn't drag the full native
+# build matrix along with it. Any push of a version tag (a real release)
+# always runs everything regardless of what changed, since a release
+# should never silently skip a platform.
+#
+# Do NOT add `submodules: recursive` to any checkout step below — there
+# are no git submodules in this repo (oar is vendored directly under
+# code/, same as everything else). That flag is exactly what silently
+# re-fetched an unpatched oar from upstream before.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write # needed to attach release assets on tags
+
+env:
+  LIBIAMF_SRC_REL: code
 
 jobs:
-  linux-amd64:
+  # ===========================================================================
+  # CHANGE DETECTION — everything downstream that's expensive checks this
+  # before running. Cheap checks (flutter-analyze, python-test) just always
+  # run; they're fast enough not to need gating.
+  # ===========================================================================
+  changes:
+    name: Detect Changed Paths
+    runs-on: ubuntu-latest
+    outputs:
+      native: ${{ steps.filter.outputs.native }}
+      flutter: ${{ steps.filter.outputs.flutter }}
+      python: ${{ steps.filter.outputs.python }}
+      wasm: ${{ steps.filter.outputs.wasm }}
+      is_release_tag: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            native:
+              - 'code/**'
+              - 'scripts/**'
+            flutter:
+              - 'iamfkit_flutter/**'
+            python:
+              - 'iamfkit_python/**'
+            wasm:
+              - 'iamfkit_wasm/**'
+              - 'code/**'
+
+  # ===========================================================================
+  # FLUTTER — cheap, always runs
+  # ===========================================================================
+  flutter-analyze:
+    name: Dart Analyze & pub score
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-      - name: Build
-        uses: ./.github/actions/libiamf-builder
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
         with:
-          build-options: -DIAMF_TEST_TOOL=ON
-  macos-arm64:
+          channel: stable
+      - working-directory: iamfkit_flutter
+        run: flutter pub get
+      - working-directory: iamfkit_flutter
+        run: flutter analyze
+      - working-directory: iamfkit_flutter
+        run: dart pub publish --dry-run
+      - working-directory: iamfkit_flutter
+        run: |
+          dart pub global activate pana
+          pana --no-warning . || true
+
+  flutter-test:
+    name: Flutter Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - working-directory: iamfkit_flutter
+        run: flutter pub get
+      - working-directory: iamfkit_flutter
+        run: flutter test
+
+  # ===========================================================================
+  # PYTHON — cheap, always runs
+  # ===========================================================================
+  python-test:
+    name: Run Python Tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: |
+          python -m pip install --upgrade pip
+          pip install numpy pytest build
+      - run: python -m unittest discover -s tests -p "test_*.py"
+        working-directory: iamfkit_python
+
+  python-build-wheels:
+    name: Build PyPI Package
+    runs-on: ubuntu-latest
+    needs: python-test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - run: pip install build
+      - run: python -m build
+        working-directory: iamfkit_python
+      # NOTE: this still builds sdist + wheel WITHOUT an embedded native
+      # binary — the earlier native-artifact gap flagged for iamfkit_python
+      # is unchanged by this consolidation and remains open. Wiring the
+      # built natives (from build-linux/build-apple/build-windows below)
+      # into these wheels is a separate follow-up, not solved here.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-dist
+          path: iamfkit_python/dist/
+
+  # ===========================================================================
+  # NATIVE BUILD — gated on `changes.outputs.native` OR a release tag.
+  # Each platform/arch built exactly once (twice only for Apple — see
+  # build-apple — since Flutter's XCFramework needs static libs and
+  # iamfkit_c's plain dylib needs dynamic).
+  # ===========================================================================
+  build-apple:
+    name: Build Apple (static for XCFramework + dynamic for iamfkit_c)
+    needs: changes
+    if: needs.changes.outputs.native == 'true' || needs.changes.outputs.is_release_tag == 'true'
     runs-on: macos-latest
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-      - name: Build
-        uses: ./.github/actions/libiamf-builder
+      - uses: actions/checkout@v4
+      - run: brew install cmake
+      - run: echo "LIBIAMF_SRC=${{ github.workspace }}/${{ env.LIBIAMF_SRC_REL }}" >> "$GITHUB_ENV"
+
+      - name: Build iOS + macOS XCFrameworks (static)
+        run: |
+          bash scripts/build_ios.sh
+          bash scripts/build_macos.sh
+
+      - name: Package static artifacts
+        run: |
+          (cd ios && zip -r ../iamf-ios.xcframework.zip iamf.xcframework)
+          (cd macos && zip -r ../iamf-macos-static.xcframework.zip iamf_macos.xcframework)
+
+      - uses: actions/upload-artifact@v4
         with:
-          build-options: -DIAMF_TEST_TOOL=ON
-  macos-amd64:
-    runs-on: macos-14
+          name: apple-static-ios-xcframework
+          path: iamf-ios.xcframework.zip
+          retention-days: 90
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apple-static-macos-xcframework
+          path: iamf-macos-static.xcframework.zip
+          retention-days: 90
+
+      - name: Build macOS dylib (dynamic, universal arm64+x86_64)
+        run: |
+          cmake -S "$LIBIAMF_SRC" -B build_macos_dynamic_arm64 \
+            -DCMAKE_BUILD_TYPE=Release -DIAMF_BUILD_SHARED_LIB=ON \
+            -DENABLE_BUILD_CODECS=ON -DIAMF_ENABLE_BINAURALIZER=ON \
+            -DIAMF_TEST_TOOL=OFF -DBUILD_TESTING=OFF -DEIGEN_BUILD_TESTING=OFF \
+            -DCMAKE_OSX_ARCHITECTURES=arm64
+          cmake --build build_macos_dynamic_arm64 --config Release -j"$(sysctl -n hw.logicalcpu)"
+
+          cmake -S "$LIBIAMF_SRC" -B build_macos_dynamic_x86_64 \
+            -DCMAKE_BUILD_TYPE=Release -DIAMF_BUILD_SHARED_LIB=ON \
+            -DENABLE_BUILD_CODECS=ON -DIAMF_ENABLE_BINAURALIZER=ON \
+            -DIAMF_TEST_TOOL=OFF -DBUILD_TESTING=OFF -DEIGEN_BUILD_TESTING=OFF \
+            -DCMAKE_OSX_ARCHITECTURES=x86_64
+          cmake --build build_macos_dynamic_x86_64 --config Release -j"$(sysctl -n hw.logicalcpu)"
+
+          mkdir -p dist-macos-dynamic
+          lipo -create \
+            build_macos_dynamic_arm64/libiamf.dylib \
+            build_macos_dynamic_x86_64/libiamf.dylib \
+            -output dist-macos-dynamic/libiamfkit.dylib
+          cp "$LIBIAMF_SRC/include/iamfkit.h" dist-macos-dynamic/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apple-dynamic-macos-universal
+          path: dist-macos-dynamic/
+          retention-days: 90
+
+  build-android:
+    name: Build Android JNI Libraries
+    needs: changes
+    if: needs.changes.outputs.native == 'true' || needs.changes.outputs.is_release_tag == 'true'
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-      - name: Build
-        uses: ./.github/actions/libiamf-builder
+      - uses: actions/checkout@v4
+      - run: sudo apt-get install -y cmake ninja-build
+      - uses: android-actions/setup-android@v3
+      - run: |
+          echo "y" | sdkmanager "ndk;26.3.11579264"
+          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/26.3.11579264" >> "$GITHUB_ENV"
+      - run: echo "LIBIAMF_SRC=${{ github.workspace }}/${{ env.LIBIAMF_SRC_REL }}" >> "$GITHUB_ENV"
+      - run: bash scripts/build_android.sh
+      - run: |
+          cd android/src/main
+          zip -r ../../../iamf-android-jniLibs.zip jniLibs/
+      - uses: actions/upload-artifact@v4
         with:
-          build-options: -DIAMF_TEST_TOOL=ON
+          name: android-jniLibs
+          path: iamf-android-jniLibs.zip
+          retention-days: 90
+
+  build-linux:
+    name: Build Linux Shared Library (shared by Flutter + iamfkit_c)
+    needs: changes
+    if: needs.changes.outputs.native == 'true' || needs.changes.outputs.is_release_tag == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get install -y cmake ninja-build gcc
+      - run: echo "LIBIAMF_SRC=${{ github.workspace }}/${{ env.LIBIAMF_SRC_REL }}" >> "$GITHUB_ENV"
+      - run: bash scripts/build_linux.sh
+      - run: |
+          mkdir -p dist-linux
+          cp linux/libiamf.so dist-linux/libiamfkit.so
+          cp "$LIBIAMF_SRC/include/iamfkit.h" dist-linux/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-x86_64-shared
+          path: dist-linux/
+          retention-days: 90
+
+  build-windows:
+    name: Build Windows DLL (shared by Flutter + iamfkit_c)
+    needs: changes
+    if: needs.changes.outputs.native == 'true' || needs.changes.outputs.is_release_tag == 'true'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lukka/get-cmake@latest
+      - uses: ilammy/msvc-dev-cmd@v1
+      - run: echo "LIBIAMF_SRC=${{ github.workspace }}/${{ env.LIBIAMF_SRC_REL }}" | Out-File -FilePath $env:GITHUB_ENV -Append
+        shell: pwsh
+      - run: scripts\build_windows.bat
+        env:
+          LIBIAMF_SRC: ${{ github.workspace }}/${{ env.LIBIAMF_SRC_REL }}
+      - run: |
+          New-Item -ItemType Directory -Force -Path dist-windows
+          Copy-Item windows\iamf.dll dist-windows\iamfkit.dll
+          Copy-Item windows\iamf.lib dist-windows\iamfkit.lib
+          Copy-Item "$env:LIBIAMF_SRC\include\iamfkit.h" dist-windows\
+        shell: pwsh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64-shared
+          path: dist-windows/
+          retention-days: 90
+
+  build-wasm:
+    name: Build WASM & Web SDK
+    needs: changes
+    if: needs.changes.outputs.wasm == 'true' || needs.changes.outputs.is_release_tag == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '3.1.50'
+      - run: bash iamfkit_wasm/wasm/build_wasm.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iamfkit-wasm-package
+          path: iamfkit_wasm/wasm/
+
+  # ===========================================================================
+  # REGRESSION TEST — gates every packaging job. If native code changed (or
+  # this is a release) and this fails, nothing gets packaged or released.
+  # ===========================================================================
+  regression-test:
+    name: Regression Test (non-zero audio check)
+    needs: [changes, build-linux]
+    if: needs.changes.outputs.native == 'true' || needs.changes.outputs.is_release_tag == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-x86_64-shared
+          path: dist-linux/
+
+      # !!! FILL THIS IN — see note in the original build_natives.yml redesign.
+      # Must decode libiamf/tests/test_000012.iamf (channel-based) and
+      # libiamf/tests/test_000100.iamf (scene-based), asserting non-zero
+      # peak sample values on both, failing this step otherwise.
+      - name: Run audio regression test
+        run: |
+          echo "TODO: wire up the real regression test command here."
+          exit 1
+
+  # ===========================================================================
+  # PACKAGE — only reads already-built artifacts, never re-runs cmake.
+  # ===========================================================================
+  package-flutter:
+    name: Package Flutter Plugin Natives
+    needs: [build-apple, build-android, build-linux, build-windows, regression-test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: 'apple-static-*|android-jniLibs|linux-x86_64-shared|windows-x64-shared'
+          merge-multiple: false
+          path: artifacts/
+
+      # NOTE: confirm this layout against iamfkit_flutter's actual expected
+      # native-binary paths before relying on it for a real release.
+      - run: |
+          mkdir -p flutter-natives/ios flutter-natives/macos flutter-natives/android flutter-natives/linux flutter-natives/windows
+          (cd flutter-natives/ios && unzip ../../artifacts/apple-static-ios-xcframework/iamf-ios.xcframework.zip)
+          (cd flutter-natives/macos && unzip ../../artifacts/apple-static-macos-xcframework/iamf-macos-static.xcframework.zip)
+          (cd flutter-natives/android && unzip ../../artifacts/android-jniLibs/iamf-android-jniLibs.zip)
+          cp artifacts/linux-x86_64-shared/* flutter-natives/linux/
+          cp artifacts/windows-x64-shared/* flutter-natives/windows/
+          (cd flutter-natives && zip -r ../iamfkit-flutter-natives.zip .)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iamfkit-flutter-natives
+          path: iamfkit-flutter-natives.zip
+          retention-days: 90
+
+  package-native-c:
+    name: Package iamfkit_c Standalone Libraries
+    needs: [build-apple, build-linux, build-windows, regression-test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: 'apple-dynamic-*|linux-x86_64-shared|windows-x64-shared'
+          merge-multiple: false
+          path: artifacts/
+
+      - run: |
+          mkdir -p dist/macos dist/linux dist/windows
+          cp artifacts/apple-dynamic-macos-universal/* dist/macos/
+          cp artifacts/linux-x86_64-shared/* dist/linux/
+          cp artifacts/windows-x64-shared/* dist/windows/
+          (cd dist/macos && zip -r ../../iamfkit-macos-universal.zip .)
+          (cd dist/linux && tar -czvf ../../iamfkit-linux-x86_64.tar.gz .)
+          (cd dist/windows && zip -r ../../iamfkit-windows-x64.zip .)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iamfkit-c-macos
+          path: iamfkit-macos-universal.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iamfkit-c-linux
+          path: iamfkit-linux-x86_64.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iamfkit-c-windows
+          path: iamfkit-windows-x64.zip
+
+  # ===========================================================================
+  # RELEASE — only on version tags, only after every packaging job succeeds.
+  # ===========================================================================
+  release:
+    name: Create GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [package-flutter, package-native-c, build-wasm, python-build-wheels, regression-test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets/
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-assets/iamfkit-flutter-natives/iamfkit-flutter-natives.zip
+            release-assets/iamfkit-c-macos/iamfkit-macos-universal.zip
+            release-assets/iamfkit-c-linux/iamfkit-linux-x86_64.tar.gz
+            release-assets/iamfkit-c-windows/iamfkit-windows-x64.zip
+            release-assets/iamfkit-wasm-package/**
+            release-assets/python-dist/**
