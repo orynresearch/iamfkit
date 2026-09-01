@@ -93,6 +93,13 @@ jobs:
   # ===========================================================================
   python-test:
     name: Run Python Tests
+    # Real dependency, not optional: the test suite instantiates
+    # IamfDecoder(), which loads a real compiled library via ctypes — it
+    # cannot run at all without one. This is why build-apple/build-linux/
+    # build-windows above are also triggered by python-only changes now;
+    # python-test was never actually independent of native builds, that
+    # just wasn't wired up until this fix.
+    needs: [changes, build-linux, build-apple, build-windows]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -106,6 +113,41 @@ jobs:
       - run: |
           python -m pip install --upgrade pip
           pip install numpy pytest build
+
+      - name: Download Linux native lib
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-x86_64-shared
+          path: native-lib/
+
+      - name: Download macOS native lib
+        if: matrix.os == 'macos-latest'
+        uses: actions/download-artifact@v4
+        with:
+          name: apple-dynamic-macos-universal
+          path: native-lib/
+
+      - name: Download Windows native lib
+        if: matrix.os == 'windows-latest'
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-x64-shared
+          path: native-lib/
+
+      - name: Set LIBIAMF_PATH (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: echo "LIBIAMF_PATH=$GITHUB_WORKSPACE/native-lib/libiamfkit.so" >> "$GITHUB_ENV"
+
+      - name: Set LIBIAMF_PATH (macOS)
+        if: matrix.os == 'macos-latest'
+        run: echo "LIBIAMF_PATH=$GITHUB_WORKSPACE/native-lib/libiamfkit.dylib" >> "$GITHUB_ENV"
+
+      - name: Set LIBIAMF_PATH (Windows)
+        if: matrix.os == 'windows-latest'
+        run: echo "LIBIAMF_PATH=$env:GITHUB_WORKSPACE\native-lib\iamfkit.dll" >> $env:GITHUB_ENV
+        shell: pwsh
+
       - run: python -m unittest discover -s tests -p "test_*.py"
         working-directory: iamfkit_python
 
@@ -140,7 +182,10 @@ jobs:
   build-apple:
     name: Build Apple (static for XCFramework + dynamic for iamfkit_c)
     needs: changes
-    if: needs.changes.outputs.native == 'true' || needs.changes.outputs.is_release_tag == 'true'
+    # Also triggered by Python-only changes: python-test's macOS matrix
+    # jobs need the dynamic dylib this job produces to load via ctypes —
+    # see python-test below.
+    if: needs.changes.outputs.native == 'true' || needs.changes.outputs.python == 'true' || needs.changes.outputs.is_release_tag == 'true'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -223,7 +268,8 @@ jobs:
   build-linux:
     name: Build Linux Shared Library (shared by Flutter + iamfkit_c)
     needs: changes
-    if: needs.changes.outputs.native == 'true' || needs.changes.outputs.is_release_tag == 'true'
+    # Also triggered by Python-only changes — see python-test below.
+    if: needs.changes.outputs.native == 'true' || needs.changes.outputs.python == 'true' || needs.changes.outputs.is_release_tag == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -243,7 +289,8 @@ jobs:
   build-windows:
     name: Build Windows DLL (shared by Flutter + iamfkit_c)
     needs: changes
-    if: needs.changes.outputs.native == 'true' || needs.changes.outputs.is_release_tag == 'true'
+    # Also triggered by Python-only changes — see python-test below.
+    if: needs.changes.outputs.native == 'true' || needs.changes.outputs.python == 'true' || needs.changes.outputs.is_release_tag == 'true'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
