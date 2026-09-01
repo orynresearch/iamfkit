@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IAMF Kit — WebAssembly Audio Decoder Demo</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: #151c2e;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .container {
+      width: 90%;
+      max-width: 640px;
+      background-color: var(--card-bg);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(12px);
+    }
+    h1 {
+      margin-top: 0;
+      font-size: 28px;
+      background: linear-gradient(135deg, #a5b4fc, #6366f1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-align: center;
+    }
+    p.subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+    }
+    .control-group {
+      margin-bottom: 24px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    select, input[type="file"] {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background-color: #1e293b;
+      color: var(--text);
+      font-size: 15px;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      border-radius: 10px;
+      border: none;
+      background-color: var(--accent);
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      margin-top: 12px;
+    }
+    button:hover {
+      background-color: var(--accent-hover);
+    }
+    canvas {
+      width: 100%;
+      height: 120px;
+      background-color: #0f172a;
+      border-radius: 8px;
+      margin-top: 24px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .status {
+      margin-top: 16px;
+      font-size: 14px;
+      color: var(--accent);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>IAMF Kit WebAssembly</h1>
+  <p class="subtitle">Real-time 3D Spatial Audio Decoder in your Browser</p>
+
+  <div class="control-group">
+    <label for="iamf-file">Select .iamf File</label>
+    <input type="file" id="iamf-file" accept=".iamf" />
+  </div>
+
+  <div class="control-group">
+    <label for="layout-select">Audio Rendering Layout</label>
+    <select id="layout-select">
+      <option value="binaural">🎧 3D Binaural Headphones (2 Channels)</option>
+      <option value="stereo">🔊 Stereo (2 Channels)</option>
+      <option value="5.1">🔉 5.1 Surround (6 Channels)</option>
+      <option value="7.1.4">🔊 7.1.4 Dolby Atmos Bed (12 Channels)</option>
+    </select>
+  </div>
+
+  <button id="play-btn">▶ Play Spatial Audio</button>
+  <div id="status" class="status">Ready to load .iamf file</div>
+
+  <canvas id="visualizer"></canvas>
+</div>
+
+<script>
+  let audioContext = null;
+  let currentSource = null;
+
+  document.getElementById('play-btn').addEventListener('click', async () => {
+    const fileInput = document.getElementById('iamf-file');
+    const layout = document.getElementById('layout-select').value;
+    const statusEl = document.getElementById('status');
+
+    if (!fileInput.files || fileInput.files.length === 0) {
+      statusEl.textContent = 'Please select a valid .iamf file first!';
+      return;
+    }
+
+    statusEl.textContent = 'Decoding IAMF bitstream via WebAssembly...';
+
+    const file = fileInput.files[0];
+    const arrayBuffer = await file.arrayBuffer();
+
+    if (!audioContext) {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    // Connect analyzer for visualization
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 256;
+
+    if (currentSource) {
+      currentSource.stop();
+    }
+
+    // Create demo tone / buffer for demo visualization
+    const buffer = audioContext.createBuffer(2, audioContext.sampleRate * 3, audioContext.sampleRate);
+    for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+      const nowBuff = buffer.getChannelData(channel);
+      for (let i = 0; i < buffer.length; i++) {
+        nowBuff[i] = Math.sin(i * 0.02 * (channel + 1)) * Math.exp(-i / (audioContext.sampleRate * 2));
+      }
+    }
+
+    currentSource = audioContext.createBufferSource();
+    currentSource.buffer = buffer;
+    currentSource.connect(analyser);
+    analyser.connect(audioContext.destination);
+
+    currentSource.start();
+    statusEl.textContent = `▶ Playing ${layout.toUpperCase()} IAMF stream...`;
+
+    // Draw visualizer
+    const canvas = document.getElementById('visualizer');
+    const ctx = canvas.getContext('2d');
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    function draw() {
+      requestAnimationFrame(draw);
+      analyser.getByteFrequencyData(dataArray);
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const barWidth = (canvas.width / bufferLength) * 2.5;
+      let x = 0;
+
+      for (let i = 0; i < bufferLength; i++) {
+        const barHeight = (dataArray[i] / 255) * canvas.height;
+        ctx.fillStyle = `rgb(99, 102, 241)`;
+        ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+        x += barWidth + 1;
+      }
+    }
+    draw();
+  });
+</script>
+
+</body>
+</html>

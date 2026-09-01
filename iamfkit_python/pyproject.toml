@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "iamfkit"
+version = "0.1.0"
+description = "Python integration kit for decoding IAMF (Immersive Audio Model and Formats) files into NumPy arrays & WAV files."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "Source-Available (Free for Non-Commercial, License Required for Commercial Use)" }
+authors = [
+    { name = "Heath Garvin" }
+]
+keywords = ["iamf", "spatial-audio", "immersive-audio", "decoder", "audio", "numpy", "pcm", "binaural"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Multimedia :: Sound/Audio :: Conversion",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "numpy>=1.20.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "sounddevice>=0.4.0",
+]
+
+[project.scripts]
+iamfkit = "iamfkit.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/MinoDab492/iamfkit"

@@ -1,0 +1,133 @@
+name: Build & Release Standalone C Dynamic Libraries
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    name: Build macOS C Library
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install CMake
+        run: brew install cmake
+
+      - name: Build libiamfkit.dylib
+        run: |
+          cmake -S code -B build_mac \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DIAMF_BUILD_SHARED_LIB=ON \
+            -DENABLE_BUILD_CODECS=ON \
+            -DIAMF_ENABLE_BINAURALIZER=ON \
+            -DIAMF_TEST_TOOL=OFF \
+            -DBUILD_TESTING=OFF \
+            -DEIGEN_BUILD_TESTING=OFF
+          cmake --build build_mac --config Release -j"$(sysctl -n hw.logicalcpu)"
+
+      - name: Package macOS release
+        run: |
+          mkdir -p dist/include dist/lib
+          cp code/include/iamfkit.h dist/include/
+          cp build_mac/libiamf.dylib dist/lib/libiamfkit.dylib
+          cd dist && zip -r ../iamfkit-macos-universal.zip .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iamfkit-macos-dylib
+          path: iamfkit-macos-universal.zip
+
+  build-linux:
+    name: Build Linux C Library
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: sudo apt-get install -y cmake ninja-build gcc
+
+      - name: Build libiamfkit.so
+        run: |
+          cmake -S code -B build_linux \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DIAMF_BUILD_SHARED_LIB=ON \
+            -DENABLE_BUILD_CODECS=ON \
+            -DIAMF_ENABLE_BINAURALIZER=ON \
+            -DIAMF_TEST_TOOL=OFF \
+            -DBUILD_TESTING=OFF \
+            -DEIGEN_BUILD_TESTING=OFF
+          cmake --build build_linux --config Release -j"$(nproc)"
+
+      - name: Package Linux release
+        run: |
+          mkdir -p dist/include dist/lib
+          cp code/include/iamfkit.h dist/include/
+          cp build_linux/libiamf.so dist/lib/libiamfkit.so
+          cd dist && tar -czvf ../iamfkit-linux-x86_64.tar.gz .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iamfkit-linux-so
+          path: iamfkit-linux-x86_64.tar.gz
+
+  build-windows:
+    name: Build Windows C Library
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: lukka/get-cmake@latest
+
+      - name: Set up MSVC Developer Command Prompt
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Build iamfkit.dll
+        run: |
+          cmake -S code -B build_win -G Ninja -DCMAKE_BUILD_TYPE=Release -DIAMF_BUILD_SHARED_LIB=ON -DENABLE_BUILD_CODECS=ON -DIAMF_ENABLE_BINAURALIZER=ON -DIAMF_TEST_TOOL=OFF -DBUILD_TESTING=OFF -DEIGEN_BUILD_TESTING=OFF
+          cmake --build build_win --config Release
+
+      - name: Package Windows release
+        run: |
+          mkdir dist\include, dist\lib
+          copy code\include\iamfkit.h dist\include\
+          copy build_win\iamf.dll dist\lib\iamfkit.dll
+          copy build_win\iamf.lib dist\lib\iamfkit.lib
+          Compress-Archive -Path dist\* -DestinationPath iamfkit-windows-x64.zip
+        shell: pwsh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iamfkit-windows-dll
+          path: iamfkit-windows-x64.zip
+
+  release:
+    name: Create GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-macos, build-linux, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets/
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-assets/iamfkit-macos-dylib/iamfkit-macos-universal.zip
+            release-assets/iamfkit-linux-so/iamfkit-linux-x86_64.tar.gz
+            release-assets/iamfkit-windows-dll/iamfkit-windows-x64.zip

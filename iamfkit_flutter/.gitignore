@@ -1,0 +1,52 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+# Libraries should not include pubspec.lock, per https://dart.dev/guides/libraries/private-files#pubspeclock.
+/pubspec.lock
+**/doc/api/
+.dart_tool/
+.flutter-plugins-dependencies
+/build/
+/coverage/
+
+# ── Native build output directories (ignore local builds) ──
+code/build*/
+code/build_ios*/
+code/build_macos*/
+code/build_android*/
+code/build_linux*/
+code/build_windows*/
+
+# ── Explicitly TRACK pre-built artifacts committed by CI ──
+!ios/iamf.xcframework/
+!ios/iamf.xcframework/**
+!macos/iamf_macos.xcframework/
+!macos/iamf_macos.xcframework/**
+!android/src/main/jniLibs/
+!android/src/main/jniLibs/**
+!linux/libiamf.so
+!windows/iamf.dll
+!windows/iamf.lib

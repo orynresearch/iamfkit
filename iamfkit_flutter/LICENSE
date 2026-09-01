@@ -1,0 +1,100 @@
+Eclipsa IAMF Decoder Flutter Plugin
+Copyright (c) 2024-2025 Heath Garvin. All rights reserved.
+
+================================================================================
+LICENSE TERMS
+================================================================================
+
+DEFINITIONS
+
+"Software" means the Eclipsa IAMF Decoder Flutter plugin, including all Dart
+source code, native wrapper code, build scripts, and documentation contained
+in this repository, but excluding the libiamf library source and binaries
+(see "Third-Party Components" below).
+
+"Non-Commercial Use" means use of the Software solely for personal,
+educational, research, or open-source projects that are not primarily intended
+for or directed toward commercial advantage or monetary compensation.
+
+"Commercial Use" means any use of the Software in, or in connection with, a
+product or service that is sold, licensed, or otherwise made available for
+monetary compensation, or any use within an organization for internal
+commercial purposes.
+
+--------------------------------------------------------------------------------
+NON-COMMERCIAL LICENSE (Free)
+--------------------------------------------------------------------------------
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this Software, to use, copy, modify, merge, publish, distribute, and/or
+sublicense the Software solely for Non-Commercial Use, subject to the
+following conditions:
+
+1. The above copyright notice and this license notice shall be included in all
+   copies or substantial portions of the Software.
+
+2. Any distribution of the Software or derivative works must retain this
+   license and must not be distributed under terms that restrict Non-Commercial
+   Use recipients from exercising the rights granted herein.
+
+3. The Software is provided "as is", without warranty of any kind, express or
+   implied, including but not limited to the warranties of merchantability,
+   fitness for a particular purpose and non-infringement. In no event shall the
+   authors or copyright holders be liable for any claim, damages or other
+   liability, whether in an action of contract, tort or otherwise, arising
+   from, out of or in connection with the Software or the use or other dealings
+   in the Software.
+
+--------------------------------------------------------------------------------
+COMMERCIAL LICENSE (Required for Commercial Use)
+--------------------------------------------------------------------------------
+
+Any Commercial Use of this Software requires a separate commercial license
+agreement obtained from the copyright holder. Unauthorized Commercial Use of
+this Software is strictly prohibited.
+
+To obtain a commercial license, contact: heath.garvin08@icloud.com
+
+Commercial license terms are negotiated on a per-project or per-organization
+basis and may include royalty, one-time fee, or other arrangements.
+
+--------------------------------------------------------------------------------
+THIRD-PARTY COMPONENTS
+--------------------------------------------------------------------------------
+
+This Software incorporates pre-compiled binaries of the libiamf library
+(https://github.com/AOMediaCodec/libiamf), which is copyright (c) 2023, The
+Alliance for Open Media. The libiamf library is licensed under the BSD
+3-Clause License:
+
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions are met:
+
+  1. Redistributions of source code must retain the above copyright notice,
+     this list of conditions and the following disclaimer.
+  2. Redistributions in binary form must reproduce the above copyright notice,
+     this list of conditions and the following disclaimer in the documentation
+     and/or other materials provided with the distribution.
+  3. Neither the name of the copyright holder nor the names of its contributors
+     may be used to endorse or promote products derived from this software
+     without specific prior written permission.
+
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+  POSSIBILITY OF SUCH DAMAGE.
+
+The libiamf library itself links against the following open-source libraries,
+each under their respective licenses:
+  - libopus (BSD 3-Clause)
+  - libFLAC (BSD 3-Clause)
+  - libfdk-aac (Fraunhofer FDK AAC License)
+  - Abseil (Apache 2.0)
+  - Eigen (MPL 2.0)

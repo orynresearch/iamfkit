@@ -1,0 +1,46 @@
+// Android build.gradle for iamfkit
+//
+// Pre-built libiamf.so files for each ABI are included under:
+//   src/main/jniLibs/<ABI>/libiamf.so
+
+group 'com.iamfkit.decoder'
+version '0.1.0'
+
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.1.0'
+    }
+}
+
+rootProject.allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+apply plugin: 'com.android.library'
+
+android {
+    compileSdk 34
+    namespace 'com.iamfkit.decoder'
+
+    defaultConfig {
+        minSdk 21
+    }
+
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ['src/main/jniLibs']
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}

@@ -1,0 +1,36 @@
+{
+  "name": "iamfkit-web",
+  "version": "0.1.0",
+  "description": "WebAssembly & Web Audio API integration kit for decoding IAMF (Immersive Audio Model and Formats) files in browsers.",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "files": [
+    "lib",
+    "wasm",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:wasm": "bash wasm/build_wasm.sh"
+  },
+  "keywords": [
+    "webassembly",
+    "wasm",
+    "web-audio-api",
+    "iamf",
+    "spatial-audio",
+    "binaural",
+    "dolby-atmos",
+    "audio-decoder"
+  ],
+  "author": "Heath Garvin <heath.garvin08@icloud.com>",
+  "license": "SEE LICENSE IN LICENSE",
+  "bugs": {
+    "url": "https://github.com/MinoDab492/iamfkit/issues"
+  },
+  "homepage": "https://github.com/MinoDab492/iamfkit#readme",
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

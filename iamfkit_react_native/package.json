@@ -1,0 +1,48 @@
+{
+  "name": "iamfkit-react-native",
+  "version": "0.1.0",
+  "description": "React Native & Expo module for decoding IAMF (Immersive Audio Model and Formats) files.",
+  "main": "lib/commonjs/index",
+  "module": "lib/module/index",
+  "types": "lib/typescript/index.d.ts",
+  "react-native": "src/index",
+  "source": "src/index",
+  "files": [
+    "src",
+    "lib",
+    "android",
+    "ios",
+    "app.plugin.js",
+    "iamfkit-react-native.podspec",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc"
+  },
+  "keywords": [
+    "react-native",
+    "expo",
+    "expo-module",
+    "iamf",
+    "spatial-audio",
+    "binaural",
+    "dolby-atmos",
+    "audio-decoder"
+  ],
+  "author": "Heath Garvin <heath.garvin08@icloud.com>",
+  "license": "SEE LICENSE IN LICENSE",
+  "bugs": {
+    "url": "https://github.com/MinoDab492/iamfkit/issues"
+  },
+  "homepage": "https://github.com/MinoDab492/iamfkit#readme",
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-native": "^0.72.0",
+    "typescript": "^5.0.0"
+  }
+}

@@ -1,0 +1,19 @@
+# Run with `dart run ffigen --config ffigen.yaml`.
+name: EclipsaIamfDecoderBindings
+description: |
+  Bindings for IAMF_decoder.h.
+
+  Regenerate bindings with `dart run ffigen --config ffigen.yaml`.
+output: 'lib/eclipsa_iamf_decoder_bindings_generated.dart'
+headers:
+  entry-points:
+    - '../code/include/IAMF_decoder.h'
+  include-directives:
+    - '../code/include/IAMF_decoder.h'
+    - '../code/include/IAMF_defines.h'
+comments:
+  style: any
+  length: full
+preamble: |
+  // ignore_for_file: camel_case_types, non_constant_identifier_names, constant_identifier_names
+

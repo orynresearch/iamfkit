@@ -1,0 +1,32 @@
+name: Build WebAssembly Package
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-wasm:
+    name: Build WASM & Web SDK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Emscripten (emsdk)
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '3.1.50'
+
+      - name: Build WebAssembly binary
+        run: bash iamfkit_wasm/wasm/build_wasm.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iamfkit-wasm-package
+          path: iamfkit_wasm/wasm/

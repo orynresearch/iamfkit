@@ -1,0 +1,28 @@
+PODS:
+  - eclipsa_iamf_decoder (0.0.1):
+    - Flutter
+  - Flutter (1.0.0)
+  - flutter_pcm_sound (0.0.1):
+    - Flutter
+
+DEPENDENCIES:
+  - eclipsa_iamf_decoder (from `.symlinks/plugins/eclipsa_iamf_decoder/ios`)
+  - Flutter (from `Flutter`)
+  - flutter_pcm_sound (from `.symlinks/plugins/flutter_pcm_sound/ios`)
+
+EXTERNAL SOURCES:
+  eclipsa_iamf_decoder:
+    :path: ".symlinks/plugins/eclipsa_iamf_decoder/ios"
+  Flutter:
+    :path: Flutter
+  flutter_pcm_sound:
+    :path: ".symlinks/plugins/flutter_pcm_sound/ios"
+
+SPEC CHECKSUMS:
+  eclipsa_iamf_decoder: fb8781789a9304b5d4370ecb6957639ea1767999
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  flutter_pcm_sound: e9c2f6ce580eefcab2af46763f0354484d5c4ac8
+
+PODFILE CHECKSUM: 6c01055ff966e40e8862373e66668a0fbf0b7ba8
+
+COCOAPODS: 1.17.0

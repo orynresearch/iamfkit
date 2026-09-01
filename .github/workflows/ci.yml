@@ -1,0 +1,32 @@
+name: build
+
+on: [push, pull_request]
+
+jobs:
+  linux-amd64:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Build
+        uses: ./.github/actions/libiamf-builder
+        with:
+          build-options: -DIAMF_TEST_TOOL=ON
+  macos-arm64:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Build
+        uses: ./.github/actions/libiamf-builder
+        with:
+          build-options: -DIAMF_TEST_TOOL=ON
+  macos-amd64:
+    runs-on: macos-14
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Build
+        uses: ./.github/actions/libiamf-builder
+        with:
+          build-options: -DIAMF_TEST_TOOL=ON
