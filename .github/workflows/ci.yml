@@ -355,6 +355,7 @@ jobs:
       - name: Compile regression test harness
         run: |
           set -e
+          ln -sf libiamfkit.so "${{ github.workspace }}/dist-linux/libiamf.so"
           gcc -I code/include -o test_harness code/test/test_harness.c \
             -L "${{ github.workspace }}/dist-linux" -liamfkit \
             -Wl,-rpath,"${{ github.workspace }}/dist-linux"
