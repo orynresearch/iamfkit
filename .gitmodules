@@ -1,3 +1,0 @@
-[submodule "code/dep_external/src/oar"]
-	path = code/dep_external/src/oar
-	url = https://github.com/AOMediaCodec/oar

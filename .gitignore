@@ -5,17 +5,24 @@
 # Xcode/iOS/macOS, Android/Gradle, and general OS/editor noise.
 #
 # !!! DO NOT ADD THE FOLLOWING TO THIS FILE, EVER !!!
-#   - code/                (the vendored, patched libiamf + oar source —
-#                            this is deliberately committed, not fetched at
-#                            build time; see "Vendoring, not submoduling"
-#                            in the project brief. Accidentally ignoring
-#                            this — or any pattern broad enough to catch
-#                            it, like a bare "build" without a trailing
-#                            slash matching a real source subfolder — would
-#                            silently drop the oar channel-mapping fix from
-#                            the repo.)
+# !!! DO NOT ADD THE FOLLOWING TO THIS FILE, EVER !!!
+#   - code/src/, code/include/, code/dep_external/  (the vendored, patched
+#                            libiamf + oar SOURCE — deliberately committed,
+#                            not fetched at build time; see "Vendoring, not
+#                            submoduling" in the project brief. Accidentally
+#                            ignoring this — or any pattern broad enough to
+#                            catch it — would silently drop the oar
+#                            channel-mapping fix from the repo.)
 #   - any *.iamf / *.textproto test fixture paths (regression-test inputs)
 #   - iamfkit.h / iamfkit.c or any other c-wrapper source
+#
+# code/dep_codecs/{lib,bin,include}/ and code/iamf.xcframework/ ARE meant
+# to be ignored (see their dedicated rules below) — those are fetched/
+# built dependency output and prebuilt packaging artifacts, not source.
+# The distinction matters: don't let "code/ is special, never ignore
+# anything under it" become the takeaway — it's specifically the SOURCE
+# under code/ that's protected, not build output that happens to live
+# in the same tree.
 #
 # If you're adding a new pattern and you're not sure whether it could
 # accidentally match something above, scope it to a specific known build
@@ -85,6 +92,25 @@ compile_commands.json
 /**/build/
 iamfkit_c/build/
 code/build/
+
+# dep_codecs' fetched-and-built dependencies (opus, FLAC, and — only when
+# ENABLE_AAC_CODEC_UNLICENSED is explicitly set — fdk-aac). These are
+# ExternalProject_Add output, regenerated fresh by CI on every build.
+# They must NEVER be committed: beyond being stale/wrong-platform-binary
+# risk like any other build output, an accidentally-committed
+# libfdk-aac.a here would defeat the entire AAC opt-in licensing design —
+# the whole point is that fdk-aac is never present at all unless someone
+# deliberately builds with the flag on, not just "not linked by default."
+code/dep_codecs/lib/
+code/dep_codecs/bin/
+code/dep_codecs/include/
+
+# Prebuilt XCFrameworks. These are CI/local-build output (see
+# iamfkit_flutter/scripts/build_ios.sh) and must be fetched from a
+# release or rebuilt locally, never committed — same staleness and
+# accidental-AAC-inclusion risk as dep_codecs above.
+code/iamf.xcframework/
+iamfkit_flutter/ios/iamf.xcframework/
 
 # ---------------------------------------------------------------------------
 # Python (iamfkit_python/)
