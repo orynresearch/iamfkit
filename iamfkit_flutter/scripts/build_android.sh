@@ -32,7 +32,7 @@ fi
 echo "==> Using NDK: $NDK"
 
 TOOLCHAIN="$NDK/build/cmake/android.toolchain.cmake"
-API_LEVEL=21
+API_LEVEL=24
 
 build_abi() {
   local ABI=$1
