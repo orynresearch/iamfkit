@@ -112,6 +112,7 @@ link_directories (
 
 if(IAMF_BUILD_SHARED_LIB)
     add_library(${PROJECT_NAME} SHARED ${sources})
+    target_compile_definitions(${PROJECT_NAME} PRIVATE IAMFKIT_BUILD_DLL)
 else()
     add_library(${PROJECT_NAME} STATIC ${sources})
 endif()
