@@ -46,13 +46,30 @@ target_link_libraries(absl_status_matchers PUBLIC
 )
 add_library(absl::status_matchers ALIAS absl_status_matchers)
 
-# Fetch Eigen library.
+# Fetch Eigen library — deliberately NOT using FetchContent_MakeAvailable.
+# That would add_subdirectory() Eigen's own top-level CMakeLists.txt,
+# which unconditionally calls add_subdirectory(blas)/add_subdirectory(lapack)
+# regardless of EXCLUDE_FROM_ALL or any BUILD_* option — those subdirectories
+# run enable_language(Fortran) at CONFIGURE time, which breaks on any
+# machine where CMake finds a Fortran compiler that isn't actually usable
+# with the active toolchain (e.g. a stray MinGW gfortran.exe alongside an
+# MSVC build on GitHub-hosted Windows runners). We only need Eigen's
+# headers, so populate the source without ever running its CMakeLists.txt,
+# and recreate the same minimal `eigen` interface target ourselves — this
+# keeps every existing `target_link_libraries(... eigen ...)` reference
+# elsewhere in this file (and in the parent obr_capi/CMakeLists.txt)
+# working unchanged.
 FetchContent_Declare(
         eigen
         GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
         GIT_TAG 3147391d946bb4b6c68edd901f2add6ac1f31f8c
 )
-FetchContent_MakeAvailable(eigen)
+FetchContent_GetProperties(eigen)
+if(NOT eigen_POPULATED)
+  FetchContent_Populate(eigen)
+endif()
+add_library(eigen INTERFACE)
+target_include_directories(eigen INTERFACE ${eigen_SOURCE_DIR})
 
 # Fetch PFFFT.
 FetchContent_Declare(
