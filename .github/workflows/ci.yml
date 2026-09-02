@@ -199,8 +199,8 @@ jobs:
 
       - name: Package static artifacts
         run: |
-          (cd ios && zip -r ../iamf-ios.xcframework.zip iamf.xcframework)
-          (cd macos && zip -r ../iamf-macos-static.xcframework.zip iamf_macos.xcframework)
+          (cd iamfkit_flutter/ios && zip -r ../../iamf-ios.xcframework.zip iamf.xcframework)
+          (cd iamfkit_flutter/macos && zip -r ../../iamf-macos-static.xcframework.zip iamf_macos.xcframework)
 
       - uses: actions/upload-artifact@v4
         with:
@@ -257,8 +257,8 @@ jobs:
       - run: echo "LIBIAMF_SRC=${{ github.workspace }}/${{ env.LIBIAMF_SRC_REL }}" >> "$GITHUB_ENV"
       - run: bash iamfkit_flutter/scripts/build_android.sh
       - run: |
-          cd android/src/main
-          zip -r ../../../iamf-android-jniLibs.zip jniLibs/
+          cd iamfkit_flutter/android/src/main
+          zip -r ../../../../iamf-android-jniLibs.zip jniLibs/
       - uses: actions/upload-artifact@v4
         with:
           name: android-jniLibs
@@ -278,7 +278,7 @@ jobs:
       - run: bash iamfkit_flutter/scripts/build_linux.sh
       - run: |
           mkdir -p dist-linux
-          cp linux/libiamf.so dist-linux/libiamfkit.so
+          cp iamfkit_flutter/linux/libiamf.so dist-linux/libiamfkit.so
           cp "$LIBIAMF_SRC/include/iamfkit.h" dist-linux/
       - uses: actions/upload-artifact@v4
         with:
@@ -304,8 +304,8 @@ jobs:
           LIBIAMF_SRC: ${{ github.workspace }}/${{ env.LIBIAMF_SRC_REL }}
       - run: |
           New-Item -ItemType Directory -Force -Path dist-windows
-          Copy-Item windows\iamf.dll dist-windows\iamfkit.dll
-          Copy-Item windows\iamf.lib dist-windows\iamfkit.lib
+          Copy-Item iamfkit_flutter\windows\iamf.dll dist-windows\iamfkit.dll
+          Copy-Item iamfkit_flutter\windows\iamf.lib dist-windows\iamfkit.lib
           Copy-Item "$env:LIBIAMF_SRC\include\iamfkit.h" dist-windows\
         shell: pwsh
       - uses: actions/upload-artifact@v4
