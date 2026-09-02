@@ -252,5 +252,14 @@ int main(int argc, char **argv) {
     free(pcm);
     IAMF_decoder_close(handle);
     free(buffer);
+
+    if (decoded_frames == 0) {
+        printf("FAIL: no frames were decoded at all.\n");
+        return 2;
+    }
+    if (non_zero_samples_count == 0) {
+        printf("FAIL: decode completed but every PCM sample was zero (silent audio regression).\n");
+        return 2;
+    }
     return 0;
 }

@@ -346,14 +346,32 @@ jobs:
           name: linux-x86_64-shared
           path: dist-linux/
 
-      # !!! FILL THIS IN — see note in the original build_natives.yml redesign.
-      # Must decode libiamf/tests/test_000012.iamf (channel-based) and
-      # libiamf/tests/test_000100.iamf (scene-based), asserting non-zero
-      # peak sample values on both, failing this step otherwise.
-      - name: Run audio regression test
+      # Compiles against the raw IAMF_decoder_* API (not iamfkit_*) since
+      # test_harness.c predates the c-wrapper — those symbols still live
+      # in the same libiamfkit.so, since iamfkit.c and libiamf's own
+      # sources are compiled into one shared library (see the src/*.c
+      # glob in code/CMakeLists.txt). No separate build needed for this,
+      # just link against what build-linux already produced.
+      - name: Compile regression test harness
         run: |
-          echo "TODO: wire up the real regression test command here."
-          exit 1
+          set -e
+          gcc -I code/include -o test_harness code/test/test_harness.c \
+            -L "${{ github.workspace }}/dist-linux" -liamfkit \
+            -Wl,-rpath,"${{ github.workspace }}/dist-linux"
+
+      # test_000012.iamf (channel-based) and test_000100.iamf (scene-based)
+      # are the exact two fixtures verified working in the Phase 1
+      # walkthrough — channel-based via default Sound System A (stereo,
+      # layout_type 0), scene-based via binaural (layout_type 20), the
+      # same combination proven non-zero back then. The harness itself
+      # exits non-zero on either zero decoded frames or all-zero PCM —
+      # see the fix at the end of test_harness.c's main() — so a failure
+      # here fails this whole step, blocking every packaging job below.
+      - name: Run regression test — channel-based (Sound System A / stereo)
+        run: ./test_harness tests/test_000012.iamf /tmp/test_000012_out.wav 0 2
+
+      - name: Run regression test — scene-based (binaural)
+        run: ./test_harness tests/test_000100.iamf /tmp/test_000100_out.wav 20 2
 
   # ===========================================================================
   # PACKAGE — only reads already-built artifacts, never re-runs cmake.
