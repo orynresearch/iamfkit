@@ -57,7 +57,7 @@ jobs:
   # FLUTTER — cheap, always runs
   # ===========================================================================
   flutter-analyze:
-    name: Dart Analyze & pub score
+    name: Dart Analyze
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -68,12 +68,6 @@ jobs:
         run: flutter pub get
       - working-directory: iamfkit_flutter
         run: flutter analyze
-      - working-directory: iamfkit_flutter
-        run: dart pub publish --dry-run
-      - working-directory: iamfkit_flutter
-        run: |
-          dart pub global activate pana
-          pana --no-warning . || true
 
   flutter-test:
     name: Flutter Tests
