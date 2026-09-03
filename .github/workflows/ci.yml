@@ -492,6 +492,9 @@ jobs:
 
       - uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ inputs.tag_name || github.ref_name }}
+          name: ${{ inputs.tag_name || github.ref_name }}
+          target_commitish: ${{ github.sha }}
           files: |
             release-assets/iamfkit-flutter-natives/iamfkit-flutter-natives.zip
             release-assets/iamfkit-c-macos/iamfkit-macos-universal.zip
