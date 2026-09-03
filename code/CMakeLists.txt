@@ -137,3 +137,32 @@ else()
     endif()
     target_link_libraries (${PROJECT_NAME} oar)
 endif()
+
+if(EMSCRIPTEN AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../iamfkit_wasm/wasm/iamfkit_emscripten.c")
+    add_executable(iamfkit_wasm
+        "${CMAKE_CURRENT_SOURCE_DIR}/../iamfkit_wasm/wasm/iamfkit_emscripten.c"
+    )
+    target_include_directories(iamfkit_wasm PRIVATE
+        include
+        src/iamf_dec
+    )
+    target_link_directories(iamfkit_wasm PRIVATE
+        ${DEP_CODECS_DIR}/lib
+    )
+    add_dependencies(iamfkit_wasm ${PROJECT_NAME} dep_opus dep_flac oar)
+    target_link_libraries(iamfkit_wasm PRIVATE ${PROJECT_NAME} oar opus FLAC)
+    set_target_properties(iamfkit_wasm PROPERTIES
+        OUTPUT_NAME "iamfkit_wasm"
+        SUFFIX ".js"
+        LINKER_LANGUAGE CXX
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+    )
+    target_link_options(iamfkit_wasm PRIVATE
+        "-O3"
+        "-sWASM=1"
+        "-sEXPORTED_RUNTIME_METHODS=cwrap,getValue,setValue,_malloc,_free"
+        "-sALLOW_MEMORY_GROWTH=1"
+        "-sMODULARIZE=1"
+        "-sEXPORT_NAME=IamfKitWasm"
+    )
+endif()

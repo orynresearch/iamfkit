@@ -51,20 +51,16 @@ emcmake cmake -S "$CODE_SRC" -B "$BUILD_DIR" \
   -DBUILD_TESTING=OFF \
   -DEIGEN_BUILD_TESTING=OFF
 
-echo "==> Building static libiamf.a (+ deps) for wasm32"
-cmake --build "$BUILD_DIR" --config Release -j"$(nproc 2>/dev/null || sysctl -n hw.logicalcpu 2>/dev/null || echo 4)"
+echo "==> Building static libiamf.a (+ deps) and iamfkit_wasm for wasm32"
+cmake --build "$BUILD_DIR" --target iamfkit_wasm --config Release -j"$(nproc 2>/dev/null || sysctl -n hw.logicalcpu 2>/dev/null || echo 4)"
 
-echo "==> Linking final WebAssembly module"
-emcc -O3 \
-  -I"$CODE_SRC/include" \
-  -I"$CODE_SRC/src/iamf_dec" \
-  "$SCRIPT_DIR/iamfkit_emscripten.c" \
-  "$BUILD_DIR/libiamf.a" \
-  -s WASM=1 \
-  -s EXPORTED_RUNTIME_METHODS='["cwrap", "getValue", "setValue", "_malloc", "_free"]' \
-  -s ALLOW_MEMORY_GROWTH=1 \
-  -s MODULARIZE=1 \
-  -s EXPORT_NAME='IamfKitWasm' \
-  -o "$SCRIPT_DIR/iamfkit_wasm.js"
+echo "==> Copying WebAssembly artifacts to $SCRIPT_DIR"
+if [ -f "$BUILD_DIR/iamfkit_wasm.js" ]; then
+  cp "$BUILD_DIR/iamfkit_wasm.js" "$SCRIPT_DIR/iamfkit_wasm.js"
+  cp "$BUILD_DIR/iamfkit_wasm.wasm" "$SCRIPT_DIR/iamfkit_wasm.wasm"
+else
+  find "$BUILD_DIR" -name "iamfkit_wasm.js" -exec cp {} "$SCRIPT_DIR/iamfkit_wasm.js" \;
+  find "$BUILD_DIR" -name "iamfkit_wasm.wasm" -exec cp {} "$SCRIPT_DIR/iamfkit_wasm.wasm" \;
+fi
 
 echo "✓ WebAssembly compilation complete: $SCRIPT_DIR/iamfkit_wasm.wasm"
