@@ -9,6 +9,13 @@
 #include <string.h>
 #include "iamfkit.h"
 
+#if defined(__EMSCRIPTEN__)
+uintptr_t __stack_chk_guard = 0x595e9fbd;
+void __stack_chk_fail(void) {
+    abort();
+}
+#endif
+
 EMSCRIPTEN_KEEPALIVE
 IamfKitDecoderHandle wasm_iamfkit_decoder_open(void) {
     return iamfkit_decoder_open();
