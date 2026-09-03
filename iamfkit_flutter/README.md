@@ -1,6 +1,6 @@
-# eclipsa_iamf_decoder
+# iamfkit
 
-[![pub package](https://img.shields.io/pub/v/eclipsa_iamf_decoder.svg)](https://pub.dev/packages/eclipsa_iamf_decoder)
+[![pub package](https://img.shields.io/pub/v/iamfkit.svg)](https://pub.dev/packages/iamfkit)
 
 A Flutter FFI plugin for decoding **IAMF (Immersive Audio Model and Formats)** / **Eclipsa Audio** files,
 powered by the [AOMedia libiamf](https://github.com/AOMediaCodec/libiamf) library.
@@ -33,7 +33,7 @@ spatial / immersive audio. Files use the `.iamf` extension.
 
 ```yaml
 dependencies:
-  eclipsa_iamf_decoder: ^0.1.0
+  iamfkit: ^0.1.0
 ```
 
 ## Usage
@@ -42,7 +42,7 @@ dependencies:
 import 'dart:ffi';
 import 'dart:io';
 import 'package:ffi/ffi.dart';
-import 'package:eclipsa_iamf_decoder/eclipsa_iamf_decoder.dart';
+import 'package:iamfkit/eclipsa_iamf_decoder.dart';
 
 void decodeIamfFile(String filePath) {
   // Open the decoder

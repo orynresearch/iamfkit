@@ -2,7 +2,7 @@ import 'dart:ffi';
 import 'dart:io';
 import 'iamfkit_bindings_generated.dart';
 
-const String _libName = 'iamfkit';
+export 'iamfkit_bindings_generated.dart';
 
 final DynamicLibrary _dylib = () {
   if (Platform.isMacOS || Platform.isIOS) {
@@ -19,5 +19,3 @@ final DynamicLibrary _dylib = () {
 
 /// The bindings to the native iamfkit C wrapper library.
 final IamfKitBindings bindings = IamfKitBindings(_dylib);
-
-export 'iamfkit_bindings_generated.dart';

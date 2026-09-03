@@ -45,7 +45,11 @@ void log_impl(const char* tag, log_level_t level, const char* module,
   if ((int)level <= log_level) {
     va_list args;
     struct timespec ts;
+#if defined(_WIN32)
     timespec_get(&ts, TIME_UTC);
+#else
+    clock_gettime(CLOCK_REALTIME, &ts);
+#endif
     struct tm* tm_info = localtime(&ts.tv_sec);
     char time[32], buffer[8192] = {0};
     strftime(time, sizeof(time), "%Y-%m-%d %H:%M:%S", tm_info);

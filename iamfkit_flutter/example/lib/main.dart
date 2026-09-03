@@ -5,7 +5,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:ffi/ffi.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_pcm_sound/flutter_pcm_sound.dart';
-import 'package:eclipsa_iamf_decoder/eclipsa_iamf_decoder.dart';
+import 'package:iamfkit/eclipsa_iamf_decoder.dart';
 
 void main() {
   runApp(const MyApp());
@@ -164,7 +164,7 @@ class _EclipsaPlayerHomeState extends State<EclipsaPlayerHome> {
         _pRsize!.value = 0;
         ret = bindings.IAMF_decoder_configure(
           _decoderHandle,
-          _pBuffer!.elementAt(_decodeOffset),
+          _pBuffer! + _decodeOffset,
           _fileSize - _decodeOffset,
           _pRsize!,
         );
@@ -244,7 +244,7 @@ class _EclipsaPlayerHomeState extends State<EclipsaPlayerHome> {
         _pRsize!.value = 0;
         final ret = bindings.IAMF_decoder_decode(
           _decoderHandle,
-          _pBuffer!.elementAt(_decodeOffset),
+          _pBuffer! + _decodeOffset,
           _fileSize - _decodeOffset,
           _pRsize!,
           _pPcm!,

@@ -382,11 +382,35 @@ jobs:
     needs: [build-apple, build-android, build-linux, build-windows, regression-test]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download iOS XCFramework
+        uses: actions/download-artifact@v4
         with:
-          pattern: 'apple-static-*|android-jniLibs|linux-x86_64-shared|windows-x64-shared'
-          merge-multiple: false
-          path: artifacts/
+          name: apple-static-ios-xcframework
+          path: artifacts/apple-static-ios-xcframework
+
+      - name: Download macOS static XCFramework
+        uses: actions/download-artifact@v4
+        with:
+          name: apple-static-macos-xcframework
+          path: artifacts/apple-static-macos-xcframework
+
+      - name: Download Android jniLibs
+        uses: actions/download-artifact@v4
+        with:
+          name: android-jniLibs
+          path: artifacts/android-jniLibs
+
+      - name: Download Linux shared lib
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-x86_64-shared
+          path: artifacts/linux-x86_64-shared
+
+      - name: Download Windows shared lib
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-x64-shared
+          path: artifacts/windows-x64-shared
 
       # NOTE: confirm this layout against iamfkit_flutter's actual expected
       # native-binary paths before relying on it for a real release.
@@ -410,11 +434,23 @@ jobs:
     needs: [build-apple, build-linux, build-windows, regression-test]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download macOS dynamic lib
+        uses: actions/download-artifact@v4
         with:
-          pattern: 'apple-dynamic-*|linux-x86_64-shared|windows-x64-shared'
-          merge-multiple: false
-          path: artifacts/
+          name: apple-dynamic-macos-universal
+          path: artifacts/apple-dynamic-macos-universal
+
+      - name: Download Linux shared lib
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-x86_64-shared
+          path: artifacts/linux-x86_64-shared
+
+      - name: Download Windows shared lib
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-x64-shared
+          path: artifacts/windows-x64-shared
 
       - run: |
           mkdir -p dist/macos dist/linux dist/windows

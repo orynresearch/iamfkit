@@ -1,7 +1,9 @@
+// ignore_for_file: type=lint, unused_import, camel_case_types, non_constant_identifier_names, constant_identifier_names
+
 import 'dart:ffi';
 import 'package:ffi/ffi.dart';
 
-class IamfKitStreamInfoNative extends Struct {
+final class IamfKitStreamInfoNative extends Struct {
   @Uint32()
   external int sampleRate;
 
